@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<TabPane fx:controller="com.fileencrypter.controller.MainController"  maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" tabClosingPolicy="UNAVAILABLE" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" fx:id="mainTabPane">
+  <tabs>
+    <Tab text="Encrypt" fx:id="encryptTab">
+       <fx:include fx:id="encrypt" source="encrypt-tab.fxml"/>
+    </Tab>
+    <Tab text="Decrypt" fx:id="decryptTab">
+       <fx:include fx:id="decrypt" source="decrypt-tab.fxml"/>
+    </Tab>
+    <Tab text="Key generator" fx:id="keyGeneratorTab">
+       <fx:include fx:id="keyGenerator" source="key-generator-tab.fxml"/>
+    </Tab>
+  </tabs>
+</TabPane>
