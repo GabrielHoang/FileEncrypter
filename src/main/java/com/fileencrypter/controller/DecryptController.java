@@ -8,7 +8,8 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextField;
 
-import java.io.File;
+import java.io.*;
+import java.net.Socket;
 import java.net.URL;
 import java.util.ResourceBundle;
 
@@ -34,6 +35,14 @@ public class DecryptController extends BaseController implements Initializable {
     private String outputFileName;
 
     private File privateKey;
+
+    private Socket clientSocket;
+
+    private PrintWriter out;
+
+    private BufferedReader in;
+
+    private static final int PORT = 8888;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -65,5 +74,42 @@ public class DecryptController extends BaseController implements Initializable {
 
     }
 
+    String sendMessage(String msg) {
+        String response = null;
+        try {
+            out.println(msg);
+            response = in.readLine();
+            System.out.println(response);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return  response;
+    }
 
+    void stopConnection() {
+        try {
+            in.close();
+            out.close();
+            clientSocket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void clientToggle() {
+        try {
+            System.out.println("CLIENT TOGGLE");
+            clientSocket = new Socket("127.0.0.1", PORT);
+            out = new PrintWriter(clientSocket.getOutputStream(), true);
+            in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+
+
+
+            //sendMessage("test");
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            stopConnection();
+        }
+    }
 }
