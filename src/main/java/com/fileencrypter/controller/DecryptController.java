@@ -105,7 +105,7 @@ public class DecryptController extends BaseController implements Initializable {
 
 
 
-            //sendMessage("test");
+            sendMessage("test");
         } catch (IOException e) {
             e.printStackTrace();
         } finally {

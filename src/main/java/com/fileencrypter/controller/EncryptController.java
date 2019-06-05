@@ -166,14 +166,14 @@ public class EncryptController extends BaseController implements Initializable {
 
 
 
-//            String test = in.readLine();
-//            if("test".equals(test)) {
-//                out.println("test ok");
-//                System.out.println("GIT MAJONEZ");
-//            } else {
-//                out.println("test failed");
-//                System.out.println("NIE GIT");
-//            }
+            String test = in.readLine();
+            if("test".equals(test)) {
+                out.println("test ok");
+                System.out.println("GIT MAJONEZ");
+            } else {
+                out.println("test failed");
+                System.out.println("NIE GIT");
+            }
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
