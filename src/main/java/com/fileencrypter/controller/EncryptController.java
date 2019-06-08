@@ -8,11 +8,18 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.PublicKey;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.concurrent.ExecutorService;
@@ -52,6 +59,8 @@ public class EncryptController extends BaseController implements Initializable {
 
     private Socket clientSocket;
 
+    private SecretKey secretKey;
+
     private PrintWriter out;
 
     private BufferedReader in;
@@ -78,6 +87,13 @@ public class EncryptController extends BaseController implements Initializable {
      * Initialilze fields with values and settings.
      */
     public void initialize(URL location, ResourceBundle resources) {
+        SecretKeySpec secretKey = null;
+        try {
+            secretKey = new SecretKeySpec(generateKey(16), "AES");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        this.secretKey = secretKey;
 
         encryptionModeChoiceBox.getItems().addAll(encryptionModes);
         encryptionModeChoiceBox.setValue(encryptionModes.get(0));
@@ -97,6 +113,16 @@ public class EncryptController extends BaseController implements Initializable {
 
         recipentTable.setItems(recipents);
         recipentColumn.setCellValueFactory(recipent -> recipent.getValue().getName());
+    }
+
+    public void sendSessionKey(PublicKey publicKey) throws Exception {
+        RSA RSAEncrypter = new RSA();
+        String encryptedSessionKey = RSAEncrypter.encrypt(Base64.getEncoder().encodeToString(secretKey.getEncoded()),publicKey);
+        //TODO: send encrypted session key to client
+        //OutputStream outputStream = socket.getOutputStream();
+        //PrintWriter writer = new PrintWriter(outputStream, true);
+        //writer.println(encryptedSessionKey);
+        //outputStream.flush();
     }
 
     //TODO: implement method
@@ -141,8 +167,62 @@ public class EncryptController extends BaseController implements Initializable {
 
     //TODO: implement methdod
     @FXML
-    void encryptAndSend(ActionEvent event) {
+    void encryptAndSend(ActionEvent event) throws Exception {
+        System.out.println("sessionKey SERVER: "+Base64.getEncoder().encodeToString(secretKey.getEncoded()));
+        Cipher cipher = null;
+        byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        IvParameterSpec ivspec = new IvParameterSpec(iv);
+        try {
+            if(encryptionModeChoiceBox.getValue().equals("ECB")){
+                cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING");
+                cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+            }
+            else if(encryptionModeChoiceBox.getValue().equals("CBC")) {
+                cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING");
+                cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivspec);
+            }
+            else if(encryptionModeChoiceBox.getValue().equals("CFB")) {
+                cipher = Cipher.getInstance("AES/CFB/PKCS5PADDING");
+                cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivspec);
+            }
+            else if(encryptionModeChoiceBox.getValue().equals("OFB")) {
+                cipher = Cipher.getInstance("AES/OFB/NoPadding");
+                cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivspec);
+            }
+        } catch (InvalidAlgorithmParameterException e) {
+            e.printStackTrace();
+        }
 
+        FileInputStream in = new FileInputStream(inputFile);
+        byte[] input = new byte[(int) inputFile.length()];
+        in.read(input);
+        try {
+            byte[] output = cipher.doFinal(input);
+        }catch (Exception ext){
+            System.out.println(ext.getMessage());
+        }
+    }
+
+    static byte[] generateKey(int lenght) throws UnsupportedEncodingException {
+        byte[] keyBytes = new byte[lenght];
+        try {
+            long time = System.currentTimeMillis();
+            //final ByteBuffer bb = ByteBuffer.allocate(Integer.SIZE / Byte.SIZE);
+            //bb.order(ByteOrder.LITTLE_ENDIAN);
+            //bb.putInt(Math.toIntExact(time));
+            String timeString = String.valueOf(time);
+            byte[] key = timeString.getBytes();
+            int len = key.length;
+
+            if (len > keyBytes.length) {
+                len = keyBytes.length;
+            }
+
+            System.arraycopy(key, 0, keyBytes, 0, len);
+        }catch (Exception ext){
+            System.out.println(ext.getMessage());
+        }
+        return keyBytes;
     }
 
 
