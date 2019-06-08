@@ -89,6 +89,7 @@ public class DecryptController extends BaseController implements Initializable {
         KeyPair keyPair = RSAEncrypter.generateKeyPair(512);
         byte[] encodedPublicKey = keyPair.getPublic().getEncoded();
         String b64PublicKey = Base64.getEncoder().encodeToString(encodedPublicKey);
+        
         //TODO: save public key to file
         //File file = new File("C:\\Users\\Win10\\IdeaProjects\\AES\\publicKeys.txt");
         //FileOutputStream fop = new FileOutputStream(file);
