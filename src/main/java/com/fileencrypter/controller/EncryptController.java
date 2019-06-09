@@ -142,7 +142,6 @@ public class EncryptController extends BaseController implements Initializable {
             inputFileLabel.setText(inputFile.getName());
             serverToggle();
         }
-
     }
 
     /**

@@ -87,16 +87,23 @@ public class DecryptController extends BaseController implements Initializable {
     void createAndSaveKeyPairRSA() throws Exception {
         RSA RSAEncrypter = new RSA();
         KeyPair keyPair = RSAEncrypter.generateKeyPair(512);
+
         byte[] encodedPublicKey = keyPair.getPublic().getEncoded();
         String b64PublicKey = Base64.getEncoder().encodeToString(encodedPublicKey);
-        
-        //TODO: save public key to file
-        //File file = new File("C:\\Users\\Win10\\IdeaProjects\\AES\\publicKeys.txt");
-        //FileOutputStream fop = new FileOutputStream(file);
-        //fop.write( b64PublicKey.getBytes() );
-        //fop.close();
 
+        byte [] encodedPrivateKey = keyPair.getPrivate().getEncoded();
+        String b64PrivateKey = Base64.getEncoder().encodeToString(encodedPrivateKey);
 
+        //saving both public and private keys to files in working directory
+        File publicKeyFile = new File("." + File.separator + "encryptedUserPublicKey.txt");
+        FileOutputStream fop = new FileOutputStream(publicKeyFile);
+        fop.write(b64PublicKey.getBytes());
+        fop.close();
+
+        File privateKeyFile = new File("." + File.separator + "encryptedUserPrivateKey.txt");
+        FileOutputStream fop2 = new FileOutputStream(privateKeyFile);
+        fop2.write(b64PrivateKey.getBytes());
+        fop2.close();
     }
 
     public void decryptSessionKey(PrivateKey privateKey) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
