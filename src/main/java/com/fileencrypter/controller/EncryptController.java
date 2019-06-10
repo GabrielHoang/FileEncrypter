@@ -4,6 +4,7 @@ import com.fileencrypter.model.MessageType;
 import com.fileencrypter.model.Recipent;
 import com.fileencrypter.model.TransferData;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -89,10 +90,9 @@ public class EncryptController extends BaseController implements Initializable {
     );
     ObservableList<Recipent> recipents = FXCollections.observableArrayList(
     //DEMO PURPOSE ONLY
-    new Recipent("test1"),
-    new Recipent("test2"),
-    new Recipent("test3"),
-    new Recipent("test4")
+    new Recipent(new SimpleStringProperty("VBox_Windows"), "192.168.56.105"),
+    new Recipent(new SimpleStringProperty("VBox_Ubuntu"), "192.168.56.106"),
+    new Recipent(new SimpleStringProperty("localhost"),"127.0.0.1")
     );
 
     /**

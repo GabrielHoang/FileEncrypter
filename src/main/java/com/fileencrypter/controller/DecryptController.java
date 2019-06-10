@@ -20,9 +20,7 @@ import java.net.URL;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.ResourceBundle;
+import java.util.*;
 import java.util.concurrent.ForkJoinPool;
 
 
@@ -80,7 +78,9 @@ public class DecryptController extends BaseController implements Initializable {
 
     private FileInfo fileInfo;
 
-    static String password;
+    static String password = "test";
+
+    private long start,stop,timeElapsed;
 
 
     ForkJoinPool forkJoinPool = new ForkJoinPool(3);
@@ -306,14 +306,29 @@ public class DecryptController extends BaseController implements Initializable {
             e.printStackTrace();
         }
 
+        start = System.currentTimeMillis();
         FileInputStream in = new FileInputStream(inputFile);
         byte[] input = new byte[(int) inputFile.length()];
         in.read(input);
 
         FileOutputStream out = new FileOutputStream(new File("." + File.separator + outputFileLabel.getText() + "." + fileInfo.fileExtension));
         byte[] output = cipher.doFinal(input);
+
+        if(!passwordLabel.getText().equals(password)) {
+            Random rand = new Random();
+            for (int i = 0; i < output.length ; i++) {
+                int randPos = rand.nextInt(output.length);
+                byte temp = output[i];
+                output[i] = output[randPos];
+                output[randPos] = temp;
+            }
+        }
+
         out.write(output);
         out.close();
+        stop = System.currentTimeMillis();
+        timeElapsed = stop - start;
+        System.out.println("Decoding time: " + timeElapsed);
         Platform.runLater(() -> {
             decryptProgressBar.setProgress(100);
             decryptStatusLabel.setText("file decrypted");
@@ -336,10 +351,12 @@ public class DecryptController extends BaseController implements Initializable {
     public void clientToggle() {
         try {
             System.out.println("CLIENT TOGGLE");
-            clientSocket = new Socket("127.0.0.1", PORT);
+            clientSocket = new Socket("192.168.56.1", PORT);
+//            clientSocket = new Socket("127.0.0.1", PORT);
 
             out = new DataOutputStream(clientSocket.getOutputStream());
             in = new DataInputStream(clientSocket.getInputStream());
+
 
             createAndSaveKeyPairRSA(password);
 
@@ -395,6 +412,7 @@ public class DecryptController extends BaseController implements Initializable {
             int totalRead = 0;
             int readBytes;
 
+            start = System.currentTimeMillis();
             while ((readBytes = in.read(buffer)) != -1) {
                 fileOut.write(buffer, 0, readBytes);
                 totalRead += readBytes;
@@ -406,7 +424,10 @@ public class DecryptController extends BaseController implements Initializable {
                 });
                 if(totalRead == fileInfo.fileSize) break;
             }
-
+            stop = System.currentTimeMillis();
+            timeElapsed = stop - start;
+            System.out.println("Download time: " + timeElapsed);
+            System.out.println("File size: " + fileInfo.fileSize/1000);
             Platform.runLater(() -> {
                 statusLabel.setText("downloading complete");
                 receivedFileLabel.setText(fileInfo.fileName + "." + fileInfo.fileExtension);

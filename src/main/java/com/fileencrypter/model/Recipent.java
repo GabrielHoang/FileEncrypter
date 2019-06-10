@@ -6,6 +6,21 @@ public class Recipent {
     //TODO: create other necessairy fields
     private SimpleStringProperty name;
 
+    private String adress;
+
+    public String getAdress() {
+        return adress;
+    }
+
+    public void setAdress(String adress) {
+        this.adress = adress;
+    }
+
+    public Recipent(SimpleStringProperty name, String adress) {
+        this.name = name;
+        this.adress = adress;
+    }
+
     public Recipent() {}
 
     public Recipent(String name) {
