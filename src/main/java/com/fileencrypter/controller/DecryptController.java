@@ -287,20 +287,20 @@ public class DecryptController extends BaseController implements Initializable {
         IvParameterSpec ivspec = new IvParameterSpec(iv);
         try {
             if(mode.equals("ECB")){
-                cipher = Cipher.getInstance("AES/ECB/NoPadding");
-                cipher.init(Cipher.ENCRYPT_MODE, this.secretKey);
+                cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING");
+                cipher.init(Cipher.DECRYPT_MODE, this.secretKey);
             }
             else if(mode.equals("CBC")) {
                 cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING");
-                cipher.init(Cipher.ENCRYPT_MODE, this.secretKey, ivspec);
+                cipher.init(Cipher.DECRYPT_MODE, this.secretKey, ivspec);
             }
             else if(mode.equals("CFB")) {
                 cipher = Cipher.getInstance("AES/CFB/PKCS5PADDING");
-                cipher.init(Cipher.ENCRYPT_MODE, this.secretKey, ivspec);
+                cipher.init(Cipher.DECRYPT_MODE, this.secretKey, ivspec);
             }
             else if(mode.equals("OFB")) {
                 cipher = Cipher.getInstance("AES/OFB/NoPadding");
-                cipher.init(Cipher.ENCRYPT_MODE, this.secretKey, ivspec);
+                cipher.init(Cipher.DECRYPT_MODE, this.secretKey, ivspec);
             }
         } catch (InvalidAlgorithmParameterException e) {
             e.printStackTrace();
