@@ -1,5 +1,8 @@
 package com.fileencrypter.controller;
 
+import com.fileencrypter.model.MessageType;
+import com.fileencrypter.model.TransferData;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -20,6 +23,7 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.ResourceBundle;
+import java.util.concurrent.ForkJoinPool;
 
 
 public class DecryptController extends BaseController implements Initializable {
@@ -46,9 +50,17 @@ public class DecryptController extends BaseController implements Initializable {
 
     private Socket clientSocket;
 
-    private PrintWriter out;
+    // Data streams serve for keys transfer
 
-    private BufferedReader in;
+    private DataOutputStream out;
+
+    private DataInputStream in;
+
+    // Buffer stream serve for file transfer
+
+    private BufferedInputStream fileIn;
+
+    private BufferedOutputStream fileOut;
 
     private String mode;
 
@@ -56,12 +68,29 @@ public class DecryptController extends BaseController implements Initializable {
 
     private PrivateKey privateKey;
 
+    private String privateKeyString;
+
+    private String publicKeyString;
+
+    private PublicKey publicKey;
+
+    private String sessionKey;
+
     private File inputFile;
+
+    private FileInfo fileInfo;
+
+    static String password;
+
+
+    ForkJoinPool forkJoinPool = new ForkJoinPool(3);
 
     private static final int PORT = 8888;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+
+
 
     }
 
@@ -84,38 +113,53 @@ public class DecryptController extends BaseController implements Initializable {
         }
     }
 
-    void createAndSaveKeyPairRSA() throws Exception {
+    public void createAndSaveKeyPairRSA(String password) throws Exception {
         RSA RSAEncrypter = new RSA();
         KeyPair keyPair = RSAEncrypter.generateKeyPair(512);
 
         byte[] encodedPublicKey = keyPair.getPublic().getEncoded();
         String b64PublicKey = Base64.getEncoder().encodeToString(encodedPublicKey);
+        publicKeyString = b64PublicKey;
+        publicKey = keyPair.getPublic();
 
         byte [] encodedPrivateKey = keyPair.getPrivate().getEncoded();
         String b64PrivateKey = Base64.getEncoder().encodeToString(encodedPrivateKey);
+        privateKeyString = b64PrivateKey;
+        privateKey = keyPair.getPrivate();
 
         //saving both public and private keys to files in working directory
-        File publicKeyFile = new File("." + File.separator + "encryptedUserPublicKey.txt");
+        new File("." + File.separator + "publicKeys").mkdirs();
+        File publicKeyFile = new File("." + File.separator + "publicKeys" +  File.separator + "encryptedUserPublicKey.txt");
         FileOutputStream fop = new FileOutputStream(publicKeyFile);
         fop.write(b64PublicKey.getBytes());
         fop.close();
 
-        File privateKeyFile = new File("." + File.separator + "encryptedUserPrivateKey.txt");
-        FileOutputStream fop2 = new FileOutputStream(privateKeyFile);
-        fop2.write(b64PrivateKey.getBytes());
-        fop2.close();
+        //encrypt private key and save to file
+        try {
+            encryptPrivateKey(privateKey,password);
+            new File("." + File.separator + "privateKeys").mkdirs();
+            File privateKeyFile = new File("." + File.separator + "privateKeys" +File.separator + "encryptedUserPrivateKey.txt");
+            FileOutputStream fop2 = new FileOutputStream(privateKeyFile);
+            fop2.write(privateKeyString.getBytes());
+            fop2.close();
+            System.out.println("PRIVATE KEY ENCRYPTED");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+//        File privateKeyFile = new File("." + File.separator + "encryptedUserPrivateKey.txt");
+//        FileOutputStream fop2 = new FileOutputStream(privateKeyFile);
+//        fop2.write(b64PrivateKey.getBytes());
+//        fop2.close();
     }
 
-    public void decryptSessionKey(PrivateKey privateKey) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
-        //TODO: Receiving encrypted session key from server
-        //encryptedSessionKey
-
-        //TODO: to uncomment after encrypted session key is implemented
-        //RSA decrypter = new RSA();
-        //String keySession = decrypter.decrypt(encryptedSessionKey.toString(),privateKey);
-        //byte[] decodedSessionKey = Base64.getDecoder().decode(keySession.trim());
-        //this.secretKey = new SecretKeySpec(decodedSessionKey, 0,
-        //       decodedSessionKey.length, "AES");
+    public void decryptSessionKey(String encryptedSessionKey, PrivateKey privateKey) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+        RSA decrypter = new RSA();
+        String keySession = decrypter.decrypt(encryptedSessionKey.toString(),privateKey);
+        byte[] decodedSessionKey = Base64.getDecoder().decode(keySession.trim());
+        this.secretKey = new SecretKeySpec(decodedSessionKey, 0,
+               decodedSessionKey.length, "AES");
     }
 
     public void encryptPrivateKey(PrivateKey privateKey, String password) throws Exception {
@@ -266,21 +310,18 @@ public class DecryptController extends BaseController implements Initializable {
         byte[] input = new byte[(int) inputFile.length()];
         in.read(input);
 
-        FileOutputStream out = new FileOutputStream(inputFile);
+        FileOutputStream out = new FileOutputStream(new File("." + File.separator + outputFileLabel.getText() + "." + fileInfo.fileExtension));
         byte[] output = cipher.doFinal(input);
+        out.write(output);
+        out.close();
+        Platform.runLater(() -> {
+            decryptProgressBar.setProgress(100);
+            decryptStatusLabel.setText("file decrypted");
+        });
+
     }
 
-    String sendMessage(String msg) {
-        String response = null;
-        try {
-            out.println(msg);
-            response = in.readLine();
-            System.out.println(response);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return  response;
-    }
+
 
     void stopConnection() {
         try {
@@ -296,17 +337,88 @@ public class DecryptController extends BaseController implements Initializable {
         try {
             System.out.println("CLIENT TOGGLE");
             clientSocket = new Socket("127.0.0.1", PORT);
-            out = new PrintWriter(clientSocket.getOutputStream(), true);
-            in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
+            out = new DataOutputStream(clientSocket.getOutputStream());
+            in = new DataInputStream(clientSocket.getInputStream());
 
+            createAndSaveKeyPairRSA(password);
 
-            sendMessage("test");
+            //send client public key to server
+            TransferData data = new TransferData(MessageType.USER_PUBLIC_KEY,publicKey);
+            sendMessage(data, out);
+
+            //receive session key and decrypt it
+            TransferData encryptedSessionKeyData = receiveMessage(in);
+            if(encryptedSessionKeyData.getHeader().equals(MessageType.SESSION_KEY)) {
+                System.out.println("SESSION KEY RECEIVED");
+                String encryptedSessionKey = encryptedSessionKeyData.getLoad().toString();
+                try {
+                    decryptSessionKey(encryptedSessionKey,privateKey);
+                    System.out.println("DECRYPTED SESSION KEY");
+                } catch (NoSuchAlgorithmException e) {
+                    e.printStackTrace();
+                } catch (InvalidKeySpecException e) {
+                    e.printStackTrace();
+                }
+            }
+            forkJoinPool.submit(() -> receiveFileMetadata());
+            //forkJoinPool.submit(() -> receiveFile());
+
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
         } finally {
-            stopConnection();
+            //stopConnection();
         }
+    }
+
+    public void receiveFileMetadata() {
+            TransferData fileInfoData = receiveMessage(in);
+            if(fileInfoData.getHeader().equals(MessageType.FILE)) {
+                System.out.println("FILE INFO RECEIVED");
+                fileInfo = (FileInfo) fileInfoData.getLoad();
+                mode = fileInfo.mode;
+                System.out.println(fileInfo.fileExtension);
+                System.out.println(fileInfo.fileName);
+                System.out.println(fileInfo.fileSize);
+                System.out.println(fileInfo.mode);
+            }
+            receiveFile();
+    }
+
+    public void receiveFile() {
+        try {
+            File encodedFile = new File("." + File.separator + fileInfo.fileName + "." + fileInfo.fileExtension);
+            fileOut = new BufferedOutputStream(new FileOutputStream(encodedFile));
+            byte[] buffer = new byte[4096];
+            int totalRead = 0;
+            int readBytes;
+
+            while ((readBytes = in.read(buffer)) != -1) {
+                fileOut.write(buffer, 0, readBytes);
+                totalRead += readBytes;
+                double progress = (double) totalRead / fileInfo.fileSize;
+
+                Platform.runLater(() -> {
+                    receiveProgressBar.setProgress(progress);
+                    statusLabel.setText(String.valueOf(Math.floor(progress * 100)) + "%");
+                });
+                if(totalRead == fileInfo.fileSize) break;
+            }
+
+            Platform.runLater(() -> {
+                statusLabel.setText("downloading complete");
+                receivedFileLabel.setText(fileInfo.fileName + "." + fileInfo.fileExtension);
+            });
+            fileOut.close();
+
+            inputFile = encodedFile;
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
     public String getHashSHA_256(String password) throws Exception{

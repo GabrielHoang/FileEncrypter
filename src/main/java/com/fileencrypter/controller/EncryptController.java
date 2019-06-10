@@ -1,6 +1,9 @@
 package com.fileencrypter.controller;
 
+import com.fileencrypter.model.MessageType;
 import com.fileencrypter.model.Recipent;
+import com.fileencrypter.model.TransferData;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -16,6 +19,8 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.PublicKey;
 import java.util.Arrays;
@@ -61,9 +66,16 @@ public class EncryptController extends BaseController implements Initializable {
 
     private SecretKey secretKey;
 
-    private PrintWriter out;
+    // Data streams serve for sending keys
+    private DataOutputStream out;
 
-    private BufferedReader in;
+    private DataInputStream in;
+
+    // Buffered streams serve for sending files
+
+    private BufferedOutputStream fileOut;
+
+    private PublicKey clientsPublicKey;
     //1 thread pool to allow running task in background
     private ExecutorService executor = Executors.newSingleThreadExecutor();
 
@@ -115,9 +127,11 @@ public class EncryptController extends BaseController implements Initializable {
         recipentColumn.setCellValueFactory(recipent -> recipent.getValue().getName());
     }
 
-    public void sendSessionKey(PublicKey publicKey) throws Exception {
+    public String createSessionKey(PublicKey publicKey) throws Exception {
         RSA RSAEncrypter = new RSA();
         String encryptedSessionKey = RSAEncrypter.encrypt(Base64.getEncoder().encodeToString(secretKey.getEncoded()),publicKey);
+        return encryptedSessionKey;
+
         //TODO: send encrypted session key to client
         //OutputStream outputStream = socket.getOutputStream();
         //PrintWriter writer = new PrintWriter(outputStream, true);
@@ -192,14 +206,48 @@ public class EncryptController extends BaseController implements Initializable {
             e.printStackTrace();
         }
 
+        String fileExtension = inputFile.getName();
+        int i = fileExtension.lastIndexOf('.');
+        if (i > 0) {
+            fileExtension = fileExtension.substring(i+1);
+        }
+
         FileInputStream in = new FileInputStream(inputFile);
         byte[] input = new byte[(int) inputFile.length()];
         in.read(input);
+        in.close();
+        byte[] cipheredOutput;
         try {
-            byte[] output = cipher.doFinal(input);
+             cipheredOutput = cipher.doFinal(input);
+             FileInfo fileInfo = new FileInfo(cipheredOutput.length,fileExtension,outputFileName,encryptionModeChoiceBox.getSelectionModel().getSelectedItem());
+             TransferData fileInfoData = new TransferData(MessageType.FILE,fileInfo);
+             sendMessage(fileInfoData,out);
+             sendStatusLabel.setText("sendind file metadata");
+
+            //open file transfer stream
+            BufferedInputStream fileIn = new BufferedInputStream(new ByteArrayInputStream(cipheredOutput));
+//            fileOut = new BufferedOutputStream(clientSocket.getOutputStream());
+
+            byte [] buffer = new byte[4096];
+            int readBytes;
+            int totalSent = 0;
+
+            while((readBytes = fileIn.read(buffer)) != -1) {
+                out.write(buffer,0,readBytes);
+                totalSent += readBytes;
+
+                double progress = (double) totalSent / fileInfo.fileSize;
+                sendStatusLabel.setText(String.valueOf(progress) + "%");
+                Platform.runLater(() -> sendProgressBar.setProgress(progress));
+            }
+            System.out.println(fileInfo.fileSize);
+            sendStatusLabel.setText("sending complete");
         }catch (Exception ext){
             System.out.println(ext.getMessage());
         }
+
+
+
     }
 
     static byte[] generateKey(int lenght) throws UnsupportedEncodingException {
@@ -240,23 +288,31 @@ public class EncryptController extends BaseController implements Initializable {
         try {
             clientSocket = serverSocket.accept();
             System.out.println("CLIENT CONNECTION ESTABLISHED");
-            out = new PrintWriter(clientSocket.getOutputStream(), true);
-            in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
+            out = new DataOutputStream(clientSocket.getOutputStream());
+            in = new DataInputStream(clientSocket.getInputStream());
 
+            BufferedOutputStream fileOut;
 
-            String test = in.readLine();
-            if("test".equals(test)) {
-                out.println("test ok");
-                System.out.println("GIT MAJONEZ");
-            } else {
-                out.println("test failed");
-                System.out.println("NIE GIT");
+            //read and save client public key
+            TransferData clientPublicKeyData = receiveMessage(in);
+
+            if(clientPublicKeyData.getHeader().equals(MessageType.USER_PUBLIC_KEY)) {
+                clientsPublicKey = (PublicKey)clientPublicKeyData.getLoad();
+                System.out.println("CLIENT PUBLIC KEY RECEIVED");
             }
+            //send session key
+            try {
+                TransferData encryptedSessionKeyData = new TransferData(MessageType.SESSION_KEY,createSessionKey(clientsPublicKey));
+                sendMessage(encryptedSessionKeyData,out);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            stopConnection();
+            //stopConnection();
         }
     }
 

@@ -51,7 +51,7 @@ public class KeyGeneratorController extends BaseController implements Initializa
 
     @FXML
     void generateKeys(ActionEvent event) {
-
+        DecryptController.password = passwordField.getText();
     }
 
 
