@@ -17,7 +17,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.shape.Line?>
 
-<VBox xmlns="http://javafx.com/javafx/8.0.172-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.fileencrypter.controller.EncryptController">
+<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" fx:controller="com.fileencrypter.controller.EncryptController">
     <children>
         <GridPane prefHeight="104.0" prefWidth="600.0">
             <columnConstraints>
@@ -64,16 +64,16 @@
                         <ChoiceBox fx:id="subblockLengthChoiceBox" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="2" />
                     </children>
                 </GridPane>
-                <Region prefHeight="187.0" prefWidth="69.0" />
+                <Region prefHeight="132.0" prefWidth="76.0" />
                 <HBox prefHeight="217.0" prefWidth="301.0">
                     <children>
-                        <TableView fx:id="recipentTable" prefHeight="222.0" prefWidth="147.0">
+                        <TableView fx:id="recipentTable" prefHeight="132.0" prefWidth="142.0">
                             <columns>
                                 <TableColumn fx:id="recipentColumn" prefWidth="75.0" text="Recipent" />
                             </columns>
-                            <columnResizePolicy>
-                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                            </columnResizePolicy>
+                     <columnResizePolicy>
+                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                     </columnResizePolicy>
                         </TableView>
                         <GridPane prefHeight="222.0" prefWidth="133.0">
                             <columnConstraints>
@@ -85,10 +85,6 @@
                                 <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
                                 <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
                             </rowConstraints>
-                            <children>
-                                <Button mnemonicParsing="false" onAction="#addRecipent" prefWidth="92.0" text="Add" GridPane.halignment="CENTER" GridPane.valignment="CENTER" />
-                                <Button mnemonicParsing="false" onAction="#deleteRecipent" prefWidth="92.0" text="Delete" GridPane.halignment="CENTER" GridPane.rowIndex="1" GridPane.valignment="CENTER" />
-                            </children>
                         </GridPane>
                     </children>
                 </HBox>

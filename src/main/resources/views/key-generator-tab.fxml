@@ -24,5 +24,7 @@
         <Label text="Password" GridPane.halignment="CENTER" GridPane.rowIndex="2" GridPane.valignment="CENTER" />
         <Button defaultButton="true" mnemonicParsing="false" onAction="#generateKeys" prefWidth="92.0" text="Generate" GridPane.columnIndex="2" GridPane.halignment="CENTER" GridPane.rowIndex="2" GridPane.valignment="CENTER" />
         <PasswordField fx:id="passwordField" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+      <Label text="Status" GridPane.halignment="CENTER" GridPane.rowIndex="1" GridPane.valignment="CENTER" />
+      <Label fx:id="statusLabel" prefHeight="17.0" prefWidth="184.0" text="Enter password to generate keys" textAlignment="CENTER" GridPane.columnIndex="1" GridPane.halignment="CENTER" GridPane.rowIndex="1" GridPane.valignment="CENTER" />
     </children>
 </GridPane>

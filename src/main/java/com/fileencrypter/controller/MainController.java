@@ -1,5 +1,6 @@
 package com.fileencrypter.controller;
 
+import com.fileencrypter.model.Context;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Tab;
@@ -29,6 +30,8 @@ public class MainController implements Initializable {
 
         decryptTab.setOnSelectionChanged(event -> {
             if(decryptTab.isSelected()) {
+                decryptController.password = Context.getInstance().getPassword();
+                Context.getInstance().setPassword(null);
                 decryptController.clientToggle();
             }
         });

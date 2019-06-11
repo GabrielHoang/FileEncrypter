@@ -78,7 +78,7 @@ public class DecryptController extends BaseController implements Initializable {
 
     private FileInfo fileInfo;
 
-    static String password = "test";
+    static String password;
 
     private long start,stop,timeElapsed;
 
@@ -351,8 +351,8 @@ public class DecryptController extends BaseController implements Initializable {
     public void clientToggle() {
         try {
             System.out.println("CLIENT TOGGLE");
-            clientSocket = new Socket("192.168.56.1", PORT);
-//            clientSocket = new Socket("127.0.0.1", PORT);
+//            clientSocket = new Socket("192.168.56.1", PORT);
+            clientSocket = new Socket("127.0.0.1", PORT);
 
             out = new DataOutputStream(clientSocket.getOutputStream());
             in = new DataInputStream(clientSocket.getInputStream());
